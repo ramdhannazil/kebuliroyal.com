@@ -1,29 +1,21 @@
 {
-  "framework": null,
-  "buildCommand": null,
-  "outputDirectory": ".",
   "cleanUrls": true,
-  "routes": [
+  "rewrites": [
     {
-      "src": "/admin\\.html",
-      "status": 404,
-      "dest": "/404.html"
+      "source": "/hahaadmin",
+      "destination": "/hahaadmin.html"
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/admin",
+      "destination": "/404.html",
+      "permanent": false
     },
     {
-      "src": "/admin",
-      "status": 404,
-      "dest": "/404.html"
-    },
-    {
-      "src": "/hahaadmin",
-      "dest": "/admin.html"
-    },
-    {
-      "handle": "filesystem"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/$1"
+      "source": "/admin.html",
+      "destination": "/404.html",
+      "permanent": false
     }
   ]
 }
