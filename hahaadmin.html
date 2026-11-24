@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel - Kelola Menu Nasi Kebuli Royal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+
+  <!-- =========================================================================
+       PASSWORD GATE — Menutupi seluruh halaman sampai password benar
+       ========================================================================= -->
+  <div id="adminGate" style="
+    position: fixed; inset: 0; z-index: 99999;
+    background: linear-gradient(135deg, #1a1208 0%, #2d1f0a 50%, #1a1208 100%);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+  ">
+    <div style="
+      background: #fff; border-radius: 20px; padding: 44px 40px;
+      width: 100%; max-width: 400px; box-shadow: 0 24px 60px rgba(0,0,0,0.4);
+      text-align: center;
+    ">
+      <!-- Logo -->
+      <div style="
+        width: 60px; height: 60px; background: linear-gradient(135deg, #ea8a10, #c96f07);
+        border-radius: 16px; display: flex; align-items: center; justify-content: center;
+        margin: 0 auto 20px;
+      ">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+      </div>
+      <h2 style="font-size:1.3rem; font-weight:800; color:#1a1208; margin:0 0 6px;">Area Terproteksi</h2>
+      <p style="font-size:0.85rem; color:#9e988c; margin:0 0 28px; line-height:1.5;">Masukkan password untuk mengakses panel admin Nasi Kebuli Royal.</p>
+
+      <!-- Input Password -->
+      <div style="position:relative; margin-bottom:16px;">
+        <input
+          type="password"
+          id="gatePassword"
+          placeholder="Masukkan password..."
+          autocomplete="current-password"
+          style="
+            width: 100%; box-sizing: border-box;
+            padding: 13px 48px 13px 16px;
+            border: 2px solid #e5e0d8; border-radius: 10px;
+            font-size: 0.95rem; font-family: inherit;
+            outline: none; transition: border-color 0.2s;
+          "
+          onfocus="this.style.borderColor='#ea8a10'"
+          onblur="this.style.borderColor='#e5e0d8'"
+          onkeydown="if(event.key==='Enter') checkAdminPassword()"
+        >
+        <!-- Toggle show/hide -->
+        <button
+          type="button"
+          onclick="toggleGatePassword()"
+          style="
+            position:absolute; right:14px; top:50%; transform:translateY(-50%);
+            background:none; border:none; cursor:pointer; color:#9e988c; padding:0; line-height:1;
+          "
+          title="Tampilkan/sembunyikan password"
+        >
+          <svg id="eyeIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Error message -->
+      <p id="gateError" style="
+        color:#ef4444; font-size:0.82rem; font-weight:600;
+        margin: -8px 0 14px; min-height:18px; display:none;
+      ">Password salah. Silakan coba lagi.</p>
+
+      <!-- Submit Button -->
+      <button
+        onclick="checkAdminPassword()"
+        style="
+          width:100%; padding:13px; background:linear-gradient(135deg,#ea8a10,#c96f07);
+          color:#fff; border:none; border-radius:10px; font-weight:800;
+          font-size:0.95rem; cursor:pointer; font-family:inherit;
+          box-shadow: 0 4px 14px rgba(234,138,16,0.35); transition:opacity 0.2s;
+        "
+        onmouseover="this.style.opacity='0.9'"
+        onmouseout="this.style.opacity='1'"
+      >
+        Masuk ke Admin Panel
+      </button>
+
+      <p style="margin-top:20px; font-size:0.75rem; color:#c8c0b4;">
+        🔒 Halaman ini hanya untuk pengelola Nasi Kebuli Royal
+      </p>
+    </div>
+  </div>
+
+  <!-- Script password gate (harus sebelum konten admin dimuat) -->
+  <script>
+    (function() {
+      // 1. Validasi Akses URL: Di environment web, hanya boleh diakses via /hahaadmin
+      const isLocal = window.location.hostname === "localhost" || 
+                      window.location.hostname === "127.0.0.1" || 
+                      window.location.protocol === "file:";
+      if (!isLocal) {
+        const path = window.location.pathname.toLowerCase().replace(/\/+$/, "");
+        if (path !== "/hahaadmin" && path !== "/hahaadmin.html") {
+          window.location.replace("/");
+          return;
+        }
+      }
+
+      // 2. Proteksi Password: kebuliroyaltanahabang06
+      const SESSION_KEY = "krAdmin_auth";
+
+      // Cek session storage — jika sudah auth, langsung sembunyikan gate
+      if (sessionStorage.getItem(SESSION_KEY) === "granted") {
+        document.getElementById("adminGate").style.display = "none";
+      }
+
+      window.checkAdminPassword = function() {
+        const input = document.getElementById("gatePassword");
+        const errorEl = document.getElementById("gateError");
+        const val = input ? input.value : "";
+
+        if (val === "kebuliroyaltanahabang06") {
+          sessionStorage.setItem(SESSION_KEY, "granted");
+          const gate = document.getElementById("adminGate");
+          gate.style.transition = "opacity 0.4s";
+          gate.style.opacity = "0";
+          setTimeout(() => { gate.style.display = "none"; }, 420);
+        } else {
+          errorEl.style.display = "block";
+          input.style.borderColor = "#ef4444";
+          input.value = "";
+          input.focus();
+          setTimeout(() => {
+            errorEl.style.display = "none";
+            input.style.borderColor = "#e5e0d8";
+          }, 3000);
+        }
+      };
+
+      window.toggleGatePassword = function() {
+        const input = document.getElementById("gatePassword");
+        const icon = document.getElementById("eyeIcon");
+        if (input.type === "password") {
+          input.type = "text";
+          icon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';
+        } else {
+          input.type = "password";
+          icon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+        }
+      };
+
+      window.logoutAdmin = function() {
+        sessionStorage.removeItem(SESSION_KEY);
+        window.location.reload();
+      };
+    })();
+  </script>
+
+  <div class="admin-layout">
+    <!-- =========================================================================
+         SIDEBAR
+         ========================================================================= -->
+    <aside class="admin-sidebar">
+      <div class="sidebar-header">
+        <a href="index.html" class="brand-wrap">
+          <div class="brand-badge">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2l2.4 4.8 5.3.8-3.8 3.7.9 5.3L12 16.1l-4.8 2.5.9-5.3L4.3 9.6l5.3-.8L12 2z"/>
+            </svg>
+          </div>
+          <div class="brand-meta">
+            <b>Royal Kebuli</b>
+            <span>ADMINISTRASI</span>
+          </div>
+        </a>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-category">MANAJEMEN UTAMA</div>
+        <a href="#" class="sidebar-link active">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+          </svg>
+          <span>Kelola Menu</span>
+          <span class="badge-count" id="sidebarMenuCount">6</span>
+        </a>
+
+        <div class="nav-category" style="margin-top: 16px;">NAVIGASI SITUS</div>
+        <a href="index.html" class="sidebar-link" target="_blank">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+            <polyline points="15 3 21 3 21 9"/>
+            <line x1="10" y1="14" x2="21" y2="3"/>
+          </svg>
+          <span>Buka Landing Page</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <a href="index.html" class="sidebar-btn-back">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+          <span>Kembali ke Website</span>
+        </a>
+      </div>
+    </aside>
+
+    <!-- =========================================================================
+         MAIN CONTENT
+         ========================================================================= -->
+    <main class="admin-main">
+      <!-- Topbar -->
+      <header class="admin-topbar">
+        <div class="topbar-left">
+          <button class="mobile-sidebar-toggle" id="mobileSidebarToggle" aria-label="Toggle Menu">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 6h16M4 12h16M4 18h16"/>
+            </svg>
+          </button>
+          <div class="search-box">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9e988c" stroke-width="2">
+              <circle cx="11" cy="11" r="8"/>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input type="text" id="adminSearchInput" placeholder="Cari menu, porsi...">
+          </div>
+        </div>
+
+        <div class="topbar-right">
+          <a href="index.html" style="font-size: 0.82rem; font-weight: 700; color: #ea8a10; text-decoration: none;" target="_blank">
+            Lihat Preview Situs ↗
+          </a>
+          <div class="admin-profile">
+            <div class="profile-avatar">AR</div>
+            <div class="profile-info">
+              <b>Ahmad Royal</b>
+              <small>Administrator</small>
+            </div>
+          </div>
+          <button onclick="logoutAdmin()" style="
+            background: #f3f0ea; border: 1px solid #e5e0d8; border-radius: 8px;
+            padding: 7px 12px; font-size: 0.78rem; font-weight: 700; color: #78716c;
+            cursor: pointer; display: flex; align-items: center; gap: 5px; font-family: inherit;
+          " title="Kunci & Keluar">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <span>Kunci</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Body Content -->
+      <div class="admin-body">
+        <!-- Page Header -->
+        <div class="page-header-row">
+          <div class="page-title-wrap">
+            <h1>Kelola Menu & Harga</h1>
+            <p>Ubah foto, sesuaikan harga jual, dan tambahkan varian menu baru Nasi Kebuli Royal.</p>
+          </div>
+          <button class="btn-add-menu" onclick="openAddMenuModal()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="12" y1="5" x2="12" y2="19"/>
+              <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            <span>Tambah Menu Baru</span>
+          </button>
+        </div>
+
+        <!-- ========= KONFIGURASI API GOOGLE SHEETS ========= -->
+        <div class="stat-box" style="margin-bottom: 20px; padding: 20px 24px;">
+          <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ea8a10" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+            <b style="font-size:1rem;">&#9881; Konfigurasi Google Sheets API</b>
+          </div>
+          <p id="apiStatusText" style="margin-bottom:12px; font-size:0.85rem; color:#6b7280;">Memeriksa status...</p>
+          <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom: 12px;">
+            <input
+              type="url"
+              id="apiUrlInput"
+              placeholder="https://script.google.com/macros/s/xxx/exec"
+              style="flex:1; min-width:260px; padding:9px 14px; border:1.5px solid #e5e0d8; border-radius:8px; font-size:0.85rem; outline:none; font-family:inherit;"
+            >
+            <button
+              onclick="saveApiUrl()"
+              style="padding:9px 20px; background:#ea8a10; color:#fff; border:none; border-radius:8px; font-weight:700; font-size:0.85rem; cursor:pointer; white-space:nowrap;"
+            >
+              Simpan URL
+            </button>
+            <button
+              onclick="syncInitialMenusToSheets()"
+              style="padding:9px 16px; background:#16a34a; color:#fff; border:none; border-radius:8px; font-weight:700; font-size:0.85rem; cursor:pointer; white-space:nowrap;"
+              title="Kirim seluruh menu saat ini ke Google Sheets"
+            >
+              🚀 Sinkronkan Menu ke Google Sheets
+            </button>
+          </div>
+          <p style="margin-top:6px; font-size:0.76rem; color:#9e988c; line-height:1.6;">
+            Database terhubung ke: <code style="background:#f5f1ec; padding:2px 6px; border-radius:4px; font-size:0.75rem;">https://script.google.com/macros/s/AKfycbxSGw8N1Tda3OlNRjMHOfdrQJDjg9xqmPMyoqmO2i8P_vyJwRxTgZzPJc4j3Ibb70ZJtg/exec</code><br>
+            Setiap Anda mengubah harga, ganti foto, menambah atau menghapus menu, perubahan langsung dikirim <strong>secara real-time ke Google Sheets</strong>.
+          </p>
+        </div>
+
+        <!-- Stats Overview Cards -->
+        <div class="stats-row">
+          <div class="stat-box">
+            <div class="stat-info">
+              <small>Total Menu</small>
+              <b id="statTotal">6</b>
+            </div>
+            <div class="stat-icon-wrap">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 6h16M4 12h16M4 18h7"/>
+              </svg>
+            </div>
+          </div>
+
+          <div class="stat-box">
+            <div class="stat-info">
+              <small>Menu Kambing</small>
+              <b id="statKambing">2</b>
+            </div>
+            <div class="stat-icon-wrap" style="color: #925303; background: #fef0db;">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="9"/>
+                <path d="M12 7v5l3 2"/>
+              </svg>
+            </div>
+          </div>
+
+          <div class="stat-box">
+            <div class="stat-info">
+              <small>Menu Ayam</small>
+              <b id="statAyam">2</b>
+            </div>
+            <div class="stat-icon-wrap" style="color: #2b7021; background: #e9f5e6;">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2l2.4 4.8 5.3.8-3.8 3.7.9 5.3L12 16.1l-4.8 2.5.9-5.3L4.3 9.6l5.3-.8L12 2z"/>
+              </svg>
+            </div>
+          </div>
+
+          <div class="stat-box">
+            <div class="stat-info">
+              <small>Tampah & Loyang</small>
+              <b id="statTampah">2</b>
+            </div>
+            <div class="stat-icon-wrap" style="color: #9e431c; background: #fbeee7;">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filter Tabs & Actions -->
+        <div class="filter-bar">
+          <div class="admin-tabs">
+            <button class="admin-tab-btn active" data-filter="all">Semua Menu</button>
+            <button class="admin-tab-btn" data-filter="kambing">Kambing</button>
+            <button class="admin-tab-btn" data-filter="ayam">Ayam</button>
+            <button class="admin-tab-btn" data-filter="tampah">Tampah / Loyang</button>
+          </div>
+
+          <button class="reset-default-btn" onclick="resetToDefaultMenus()" title="Kembalikan ke data awal">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="1 4 1 10 7 10"/>
+              <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+            </svg>
+            <span>Reset Data Default</span>
+          </button>
+        </div>
+
+        <!-- Menu Table -->
+        <div class="table-card">
+          <table class="menu-table">
+            <thead>
+              <tr>
+                <th>Foto</th>
+                <th>Menu & Porsi</th>
+                <th>Kategori</th>
+                <th>Harga Jual</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="menuTableBody">
+              <!-- Rendered via admin.js -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- =========================================================================
+       MODAL 1: TAMBAH / EDIT MENU
+       ========================================================================= -->
+  <div class="modal-overlay" id="menuModal">
+    <div class="admin-modal">
+      <div class="modal-header">
+        <h3 id="menuModalTitle">Tambah Menu Baru</h3>
+        <button class="modal-close" id="menuModalClose" aria-label="Tutup">×</button>
+      </div>
+
+      <form id="menuForm">
+        <div class="form-group">
+          <label for="menuName">Nama Menu *</label>
+          <input type="text" id="menuName" required placeholder="Contoh: Nasi Kebuli Kambing Madu">
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="menuCategory">Kategori *</label>
+            <select id="menuCategory" required>
+              <option value="kambing">Kambing</option>
+              <option value="ayam">Ayam</option>
+              <option value="tampah">Tampah / Loyang</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="menuPrice">Harga (Rupiah) *</label>
+            <input type="number" id="menuPrice" required placeholder="Contoh: 55000">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="menuSubtitle">Porsi / Keterangan Singkat</label>
+            <input type="text" id="menuSubtitle" placeholder="Contoh: 1 porsi • acar & sambal">
+          </div>
+
+          <div class="form-group">
+            <label for="menuTag">Tag / Label (Opsional)</label>
+            <input type="text" id="menuTag" placeholder="Contoh: Paling favorit, Baru">
+          </div>
+        </div>
+
+        <!-- Foto Picker -->
+        <div class="form-group">
+          <label>Foto Menu</label>
+          <div class="photo-picker-box">
+            <img src="" alt="Preview" class="photo-preview-img" id="formPhotoPreview">
+            <div style="flex: 1;">
+              <input type="url" id="formPhotoUrl" placeholder="Masukkan URL gambar atau unggah di bawah" style="margin-bottom: 8px;">
+              <input type="file" id="formPhotoFile" accept="image/*">
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="menuDesc">Deskripsi Menu</label>
+          <textarea id="menuDesc" rows="2" placeholder="Jelaskan aroma rempah, kelembutan daging, dan kelengkapannya..."></textarea>
+        </div>
+
+        <button type="submit" class="btn-submit-modal">Simpan Menu</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       MODAL 2: UBAH FOTO MENU CEPAT
+       ========================================================================= -->
+  <div class="modal-overlay" id="photoModal">
+    <div class="admin-modal">
+      <div class="modal-header">
+        <div>
+          <h3>Ganti Foto Menu</h3>
+          <small style="color: #8c8577;" id="photoTargetName">Nama Menu</small>
+        </div>
+        <button class="modal-close" id="photoModalClose" aria-label="Tutup">×</button>
+      </div>
+
+      <div style="text-align: center; margin-bottom: 20px;">
+        <img 
+          src="" 
+          id="currentPhotoPreview" 
+          style="width: 140px; height: 140px; border-radius: 16px; object-fit: cover; border: 3px solid #f6eedf; box-shadow: 0 10px 24px rgba(0,0,0,0.1);"
+        >
+      </div>
+
+      <div class="form-group">
+        <label>Pilih dari Preset Galeri Kuliner Kebuli:</label>
+        <div class="preset-photos" id="presetPhotosContainer"></div>
+      </div>
+
+      <div class="form-group">
+        <label for="inputPhotoUrl">Atau Tempel URL Gambar Baru:</label>
+        <input type="url" id="inputPhotoUrl" placeholder="https://images.unsplash.com/...">
+      </div>
+
+      <div class="form-group">
+        <label for="inputPhotoFile">Atau Unggah File dari Komputer:</label>
+        <input type="file" id="inputPhotoFile" accept="image/*">
+      </div>
+
+      <button type="button" class="btn-submit-modal" id="btnSavePhoto">Terapkan Foto Baru</button>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast-msg" id="adminToast">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ea8a10" stroke-width="2.5">
+      <path d="M20 6L9 17l-5-5"/>
+    </svg>
+    <span id="toastMsgText">Perubahan berhasil disimpan!</span>
+  </div>
+
+  <!-- Script -->
+  <script src="config.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>
+
