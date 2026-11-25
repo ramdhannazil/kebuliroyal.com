@@ -81,11 +81,34 @@ const DEFAULT_MENUS = [
   },
 ]
 
-// --- Label mapping untuk kategori ---
-const CATEGORY_LABELS = {
+// --- Label mapping untuk kategori bawaan & dinamis ---
+const DEFAULT_CATEGORY_LABELS = {
   kambing: "Kambing",
   ayam: "Ayam",
   tampah: "Tampah/Loyang",
+}
+
+function getCategories() {
+  const catKey = (typeof CONFIG !== "undefined" && CONFIG.CATEGORIES_KEY) || "kebuli_royal_categories"
+  const stored = localStorage.getItem(catKey)
+  if (stored) {
+    try {
+      const parsed = JSON.parse(stored)
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed
+    } catch (_) {}
+  }
+  return [
+    { id: "kambing", label: "Kambing" },
+    { id: "ayam", label: "Ayam" },
+    { id: "tampah", label: "Tampah/Loyang" },
+  ]
+}
+
+function getCategoryLabel(catId) {
+  const categories = getCategories()
+  const found = categories.find((c) => c.id === catId || c.id === String(catId).toLowerCase())
+  if (found) return found.label
+  return DEFAULT_CATEGORY_LABELS[catId] || catId || ""
 }
 
 // ============================================================
@@ -97,7 +120,10 @@ document.addEventListener("DOMContentLoaded", () => {
   renderSkeletons(document.getElementById("priceMenuGrid"), "price")
   fetchMenusFromSheets()
 
-  // 1. Sticky Header & Active Nav on Scroll
+  // 1. Inisialisasi Tautan Pengantaran (GoFood, GrabFood, ShopeeFood)
+  setupDeliveryLinks()
+
+  // 2. Sticky Header & Active Nav on Scroll
   const header = document.querySelector(".site-header")
   const sections = document.querySelectorAll("section[id]")
   const navLinks = document.querySelectorAll(".nav-link")
@@ -213,6 +239,19 @@ async function fetchMenusFromSheets() {
 
     const json = await response.json()
 
+    // Muat Kategori dari Sheets jika tersedia
+    if (json && Array.isArray(json.categories) && json.categories.length > 0) {
+      localStorage.setItem((typeof CONFIG !== "undefined" && CONFIG.CATEGORIES_KEY) || "kebuli_royal_categories", JSON.stringify(json.categories))
+    }
+
+    // Muat Link Pengantaran dari Sheets jika tersedia
+    if (json && json.settings) {
+      localStorage.setItem((typeof CONFIG !== "undefined" && CONFIG.DELIVERY_KEY) || "kebuli_royal_delivery_links", JSON.stringify(json.settings))
+      if (typeof setupDeliveryLinks === "function") {
+        setupDeliveryLinks()
+      }
+    }
+
     // Mendukung baik format array langsung [ ... ] maupun wrapped { data: [ ... ] } / { result: [ ... ] }
     let rawList = []
     if (Array.isArray(json)) {
@@ -245,13 +284,25 @@ async function fetchMenusFromSheets() {
       const rawKat = String(m.kategori || m.category || "kambing").toLowerCase()
       const kategori = rawKat.includes("kambing") ? "kambing" : (rawKat.includes("ayam") ? "ayam" : (rawKat.includes("tampah") || rawKat.includes("loyang") ? "tampah" : rawKat))
 
+      let portion = m.porsi || m.portion || ""
+      let notes = m.keterangan || m.notes || m.catatan || ""
+      if (!portion && m.subtitle) {
+        const parts = m.subtitle.split("•")
+        portion = parts[0] ? parts[0].trim() : "1 porsi"
+        notes = parts[1] ? parts[1].trim() : ""
+      }
+      if (!portion) portion = "1 porsi"
+      if (!notes && !m.subtitle) notes = "acar segar & sambal khas Royal"
+
       return {
         id: m.id || ("menu-" + (index + 1)),
         nama: m.nama || m.name || "Menu Nasi Kebuli",
         kategori: kategori,
         harga: Number(m.harga || m.price) || 0,
         deskripsi: m.deskripsi || m.desc || "Hidangan nasi kebuli rempah autentik khas Royal.",
-        porsi: m.porsi || m.subtitle || "1 porsi • acar & sambal",
+        porsi: portion,
+        keterangan: notes,
+        subtitle: notes ? `${portion} • ${notes}` : portion,
         gambar_url: m.gambar || m.gambar_url || m.image || "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=500&q=80",
         status: isHabis ? "habis" : "tersedia",
         tag: m.tag || (index === 0 ? "Paling favorit" : (index === 1 ? "Pilihan nikmat" : (index === 2 ? "Untuk berbagi" : ""))),
@@ -400,8 +451,8 @@ function renderPriceGrid(menus) {
       const isHabis = String(m.status).toLowerCase() === "habis"
       const namaSafe = (m.nama || "Menu").replace(/'/g, "\\'")
       const imgSafe = (m.gambar_url || "").replace(/'/g, "\\'")
-      const catLabel = CATEGORY_LABELS[m.kategori] || m.kategori || ""
-      const subtitle = m.porsi ? `1 porsi • ${m.porsi.replace("/", "").trim()}` : "1 porsi • acar & sambal"
+      const catLabel = getCategoryLabel(m.kategori)
+      const subtitle = m.keterangan ? `${m.porsi || "1 porsi"} • ${m.keterangan}` : (m.subtitle || m.porsi || "1 porsi • acar & sambal")
 
       return `
         <div class="price-item-card${isHabis ? " habis" : ""}" data-category="${m.kategori || ""}">
@@ -662,13 +713,68 @@ function setupOrderModal() {
       if (notes) message += `\nCatatan Tambahan: ${notes}`
       message += `\n\nMohon info ketersediaan dan ongkos kirim ya. Terima kasih!`
 
-      const waPhone = (typeof CONFIG !== "undefined" && CONFIG.WHATSAPP_PHONE) || "6281234567890"
+      const waPhone = (typeof CONFIG !== "undefined" && CONFIG.WHATSAPP_PHONE) || "6287875764847"
       const waUrl = `https://wa.me/${waPhone}?text=${encodeURIComponent(message)}`
 
       closeModal()
       showToast(`Membuka WhatsApp untuk pesanan: ${currentItem.name}`)
       setTimeout(() => window.open(waUrl, "_blank"), 300)
     })
+  }
+}
+
+// ============================================================
+// DELIVERY PLATFORM LINKS (GoFood, GrabFood, ShopeeFood)
+// ============================================================
+function setupDeliveryLinks() {
+  let delivery = {
+    gofood: "https://gofood.co.id/jakarta/restaurant/kebuli-royal-tanah-abang-8e022711-7249-4662-888b-c4fdcd131d35",
+    grabfood: "",
+    shopeefood: "",
+  }
+
+  const stored = localStorage.getItem((typeof CONFIG !== "undefined" && CONFIG.DELIVERY_KEY) || "kebuli_royal_delivery_links")
+  if (stored) {
+    try {
+      const parsed = JSON.parse(stored)
+      delivery = { ...delivery, ...parsed }
+    } catch (_) {}
+  } else if (typeof CONFIG !== "undefined" && CONFIG.DEFAULT_DELIVERY) {
+    delivery = { ...delivery, ...CONFIG.DEFAULT_DELIVERY }
+  }
+
+  const cardGofood = document.getElementById("cardDeliveryGofood")
+  const cardGrab = document.getElementById("cardDeliveryGrabfood")
+  const cardShopee = document.getElementById("cardDeliveryShopeefood")
+
+  if (cardGofood && delivery.gofood) {
+    cardGofood.href = delivery.gofood
+  }
+
+  if (cardGrab) {
+    if (delivery.grabfood && delivery.grabfood.trim() !== "" && delivery.grabfood.trim() !== "#") {
+      cardGrab.href = delivery.grabfood.trim()
+      cardGrab.onclick = null
+    } else {
+      cardGrab.href = "javascript:void(0)"
+      cardGrab.onclick = (e) => {
+        e.preventDefault()
+        showToast("Tautan GrabFood sedang disiapkan. Silakan pesan via WhatsApp atau GoFood!")
+      }
+    }
+  }
+
+  if (cardShopee) {
+    if (delivery.shopeefood && delivery.shopeefood.trim() !== "" && delivery.shopeefood.trim() !== "#") {
+      cardShopee.href = delivery.shopeefood.trim()
+      cardShopee.onclick = null
+    } else {
+      cardShopee.href = "javascript:void(0)"
+      cardShopee.onclick = (e) => {
+        e.preventDefault()
+        showToast("Tautan ShopeeFood sedang disiapkan. Silakan pesan via WhatsApp atau GoFood!")
+      }
+    }
   }
 }
 
