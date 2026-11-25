@@ -8,17 +8,17 @@
   --primary: #ea8a10;
   --primary-hover: #d77a07;
   --primary-light: #fff3df;
-  
+
   --bg-page: #f6f5f1;
   --bg-white: #ffffff;
   --bg-sidebar: #1e1d19;
   --bg-sidebar-hover: #2b2923;
-  
+
   --text-main: #23201a;
   --text-heading: #181510;
   --text-muted: #736e63;
   --text-light: #9c978b;
-  
+
   --border: #e9e4d8;
   --border-light: #f1ede3;
   --border-sidebar: #2e2c26;
@@ -35,7 +35,9 @@
   --font-main: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -360,6 +362,8 @@ body {
   gap: 6px;
 }
 
+
+.btn-add-menu {
   background: var(--primary);
   color: #1a150b;
   font-weight: 700;
