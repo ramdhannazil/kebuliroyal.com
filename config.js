@@ -7,7 +7,7 @@
 
 const CONFIG = {
   // URL Deployment Google Apps Script Web App resmi:
-  GOOGLE_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbxSGw8N1Tda3OlNRjMHOfdrQJDjg9xqmPMyoqmO2i8P_vyJwRxTgZzPJc4j3Ibb70ZJtg/exec",
+  GOOGLE_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbwd05W8mh-5IJzf6MwTvwOWpz5zko3bkGkEg8jY02I2U1PC0jWMQKQ-ba7ifuMOqbAAOA/exec",
 
   // Nomor WhatsApp Resmi Pemesanan (087875764847)
   WHATSAPP_PHONE: "6287875764847",
