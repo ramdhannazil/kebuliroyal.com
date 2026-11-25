@@ -181,11 +181,26 @@ function loadCategories() {
   }
 }
 
-function saveCategories() {
+function saveCategories(syncToSheets = true) {
   localStorage.setItem(CATEGORIES_KEY, JSON.stringify(categories))
   renderCategoryTabs()
   populateCategorySelect()
   renderCategoryList()
+
+  if (syncToSheets && typeof isApiConfigured === "function" && isApiConfigured()) {
+    fetch(getActiveApiUrl(), {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ action: "saveCategories", categories: categories }),
+    })
+      .then((res) => res.json())
+      .then((res) => {
+        if (res && res.success) {
+          console.log("✓ Kategori tersinkronisasi ke Google Sheets")
+        }
+      })
+      .catch((err) => console.warn("Sinkronisasi kategori ke Google Sheets tertunda:", err))
+  }
 }
 
 function getCategoryLabel(catId) {
@@ -374,7 +389,27 @@ window.saveDeliveryLinks = function (e) {
   }
   localStorage.setItem(DELIVERY_KEY, JSON.stringify(links))
   if (deliveryModal) deliveryModal.classList.remove("active")
-  showToast("✓ Link ShopeeFood, GrabFood, dan GoFood berhasil disimpan!")
+  showToast("✓ Menyimpan link pengantaran...")
+
+  if (typeof isApiConfigured === "function" && isApiConfigured()) {
+    fetch(getActiveApiUrl(), {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ action: "saveSettings", settings: links }),
+    })
+      .then((res) => res.json())
+      .then((res) => {
+        if (res && res.success) {
+          showToast("✓ Link ShopeeFood, GrabFood & GoFood berhasil disimpan ke Google Sheets!")
+        }
+      })
+      .catch((err) => {
+        console.warn("Gagal sinkron link ke Google Sheets:", err)
+        showToast("✓ Link disimpan di browser (offline)")
+      })
+  } else {
+    showToast("✓ Link ShopeeFood, GrabFood, dan GoFood berhasil disimpan!")
+  }
 }
 
 // ============================================================
@@ -393,6 +428,20 @@ async function loadMenus() {
 
       if (response.ok) {
         const json = await response.json()
+
+        // Muat Kategori dari Sheets jika tersedia
+        if (json && Array.isArray(json.categories) && json.categories.length > 0) {
+          categories = json.categories
+          localStorage.setItem(CATEGORIES_KEY, JSON.stringify(categories))
+          renderCategoryTabs()
+          populateCategorySelect()
+        }
+
+        // Muat Link Pengantaran dari Sheets jika tersedia
+        if (json && json.settings) {
+          localStorage.setItem(DELIVERY_KEY, JSON.stringify(json.settings))
+        }
+
         let rawList = []
         if (Array.isArray(json)) {
           rawList = json
